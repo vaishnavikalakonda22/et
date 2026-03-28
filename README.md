@@ -35,4 +35,3 @@ We built a custom `"Slate Ocean"` theme taking inspiration from modern fintech h
 - Accents: Voids of `sky-500` & `indigo-500`
 
 ---
-*Built with ❤️ for rapid prototyping and financial literacy.*
