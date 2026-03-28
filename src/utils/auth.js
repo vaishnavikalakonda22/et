@@ -7,7 +7,14 @@ const SESSION_KEY = 'amm_session'
 
 export function getUsers() {
   try {
-    return JSON.parse(localStorage.getItem(USERS_KEY)) || []
+    const raw = localStorage.getItem(USERS_KEY)
+    let users = raw ? JSON.parse(raw) : null
+    if (!users || users.length === 0) {
+      const demoUser = { id: 1, name: 'Demo User', email: 'demo@moneym.ai', password: 'demo1234', createdAt: new Date().toISOString() }
+      users = [demoUser]
+      localStorage.setItem(USERS_KEY, JSON.stringify(users))
+    }
+    return users
   } catch {
     return []
   }

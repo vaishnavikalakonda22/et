@@ -17,32 +17,65 @@ export function getFinanceData(userId) {
 }
 
 // ============================================================
-// HEALTH SCORE
+// HEALTH SCORE (6 DIMENSIONS)
 // ============================================================
-export function calculateHealthScore(income, expenses, savings) {
-  if (!income || income <= 0) return { score: 0, label: 'Unknown', color: 'var(--text-muted)', tier: 'unknown' }
+export function calculateHealthScore(form) {
+  const i = +(form.income || 0)
+  const e = +(form.expenses || 0)
+  const s = +(form.savings || 0)
+  const monthlyEmi = +(form.emis || 0)
 
-  const savingsRatio = (income - expenses) / income
-  const savingsBuffer = savings / expenses // months of emergency fund
+  if (i <= 0) return { score: 0, label: 'Unknown', color: 'var(--text-muted)', tier: 'unknown', dimensions: [], ratio: 0 }
 
-  let baseScore = Math.max(0, Math.min(100, savingsRatio * 200))
+  // 1. Emergency Preparedness (Aim: 6 months)
+  const monthsOfBuffer = s / (e + 0.001)
+  const emergencyScore = Math.min(100, (monthsOfBuffer / 6) * 100)
 
-  // Bonus for emergency fund
-  if (savingsBuffer >= 6) baseScore = Math.min(100, baseScore + 10)
-  else if (savingsBuffer >= 3) baseScore = Math.min(100, baseScore + 5)
+  // 2. Insurance Coverage
+  let insScore = 0
+  if (form.healthInsurance) insScore += 50
+  if (form.lifeInsurance) insScore += 50
 
-  // Bonus for positive savings
-  if (savings > 0) baseScore = Math.min(100, baseScore + 5)
+  // 3. Investment Diversification (Savings Rate)
+  const savingsRate = (i - e - monthlyEmi) / i
+  const invScore = Math.max(0, Math.min(100, (savingsRate / 0.20) * 100))
 
-  const score = Math.round(baseScore)
+  // 4. Debt Health (EMI / Income threshold 40%)
+  const debtToIncome = monthlyEmi / i
+  const debtScore = Math.max(0, 100 - (debtToIncome / 0.40 * 100))
 
-  if (savingsRatio < 0.2) {
-    return { score, label: 'Needs Attention', color: 'var(--accent-danger)', tier: 'poor', ratio: savingsRatio }
-  } else if (savingsRatio < 0.4) {
-    return { score, label: 'Average', color: 'var(--accent-warning)', tier: 'average', ratio: savingsRatio }
-  } else {
-    return { score, label: 'Excellent', color: 'var(--accent-primary)', tier: 'good', ratio: savingsRatio }
+  // 5. Tax Efficiency
+  const taxScore = form.utilizingTax80c ? 100 : 30
+
+  // 6. Retirement Readiness
+  const retScore = form.investingForRetirement ? 100 : 20
+
+  const totalScore = Math.round((emergencyScore + insScore + invScore + debtScore + taxScore + retScore) / 6)
+
+  const dimensions = [
+    { subject: 'Emergency', A: Math.round(emergencyScore), fullMark: 100 },
+    { subject: 'Insurance', A: Math.round(insScore), fullMark: 100 },
+    { subject: 'Investments', A: Math.round(invScore), fullMark: 100 },
+    { subject: 'Debt Health', A: Math.round(debtScore), fullMark: 100 },
+    { subject: 'Tax Effic.', A: Math.round(taxScore), fullMark: 100 },
+    { subject: 'Retirement', A: Math.round(retScore), fullMark: 100 }
+  ]
+
+  let label = 'Excellent'
+  let tier = 'good'
+  let color = '#0ea5e9' // Sky 500
+
+  if (totalScore < 40) {
+    label = 'Critical Warning'
+    tier = 'poor'
+    color = '#ef4444' // Red 500
+  } else if (totalScore < 70) {
+    label = 'Needs Work'
+    tier = 'average'
+    color = '#f59e0b' // Amber 500
   }
+
+  return { score: totalScore, label, color, tier, dimensions, ratio: savingsRate }
 }
 
 // ============================================================
@@ -103,7 +136,7 @@ export function generateFinancialPlan(income, expenses, savings, risk, goal) {
 export function calculateGoalPlan(goal, targetAmount, timelineMonths, currentSavings) {
   const remaining = Math.max(0, targetAmount - currentSavings)
   const monthlySavingsNeeded = timelineMonths > 0 ? Math.ceil(remaining / timelineMonths) : remaining
-  const withGrowth = Math.ceil(remaining / (timelineMonths * (1 + 0.01 * 0.5))) // rough SIP estimate
+  const withGrowth = Math.ceil(remaining / (timelineMonths * (1 + 0.01 * 0.5)))
 
   let tips = []
   if (goal === 'Emergency Fund') {
@@ -119,6 +152,63 @@ export function calculateGoalPlan(goal, targetAmount, timelineMonths, currentSav
   }
 
   return { monthlySavingsNeeded, withGrowth, remaining, tips }
+}
+
+// ============================================================
+// TAX CALCULATOR
+// ============================================================
+export function calculateTax(baseSalary, hraReceived, monthlyRent, deduction80c, deduction80d, homeLoanInt) {
+  const standardDeduction = 50000;
+  const grossSalary = baseSalary + hraReceived;
+
+  // HRA Exemption logic (simplified)
+  const rentPaid = monthlyRent * 12;
+  const excessRent = Math.max(0, rentPaid - (0.10 * baseSalary));
+  const hraExemption = Math.min(hraReceived, excessRent);
+
+  const netDeduction80c = Math.min(150000, deduction80c);
+  // Max 2L for home loan self-occupied
+  const netHomeLoanInt = Math.min(200000, homeLoanInt);
+
+  // OLD TAX REGIME (Allows deductions)
+  const oldTaxableBase = grossSalary - hraExemption - standardDeduction - netDeduction80c - deduction80d - netHomeLoanInt;
+  const oldTaxable = Math.max(0, oldTaxableBase);
+
+  let oldTax = 0;
+  if (oldTaxable > 1000000) oldTax = 112500 + (oldTaxable - 1000000) * 0.3;
+  else if (oldTaxable > 500000) oldTax = 12500 + (oldTaxable - 500000) * 0.2;
+  else if (oldTaxable > 250000) oldTax = (oldTaxable - 250000) * 0.05;
+  
+  // Rebate Under 87A for Old Regime (No tax if <= 5L)
+  if (oldTaxable <= 500000) oldTax = 0;
+  oldTax = oldTax * 1.04; // 4% Health & Education Cess
+
+  // NEW TAX REGIME (Only Standard Deduction allowed)
+  const newTaxableBase = grossSalary - standardDeduction;
+  const newTaxable = Math.max(0, newTaxableBase);
+
+  let newTax = 0;
+  if (newTaxable > 1500000) newTax = 150000 + (newTaxable - 1500000) * 0.3;
+  else if (newTaxable > 1200000) newTax = 90000 + (newTaxable - 1200000) * 0.2;
+  else if (newTaxable > 900000) newTax = 45000 + (newTaxable - 900000) * 0.15;
+  else if (newTaxable > 600000) newTax = 15000 + (newTaxable - 600000) * 0.1;
+  else if (newTaxable > 300000) newTax = (newTaxable - 300000) * 0.05;
+
+  // Rebate under 87A for New Regime (No tax if <= 7L)
+  if (newTaxable <= 700000) newTax = 0;
+  newTax = newTax * 1.04;
+
+  const winner = newTax <= oldTax ? 'New Tax Regime' : 'Old Tax Regime';
+  const savingsAmt = Math.abs(oldTax - newTax);
+
+  return {
+    oldTax: Math.round(oldTax),
+    newTax: Math.round(newTax),
+    oldTaxable: Math.round(oldTaxable),
+    newTaxable: Math.round(newTaxable),
+    winner,
+    savingsAmt: Math.round(savingsAmt)
+  }
 }
 
 // ============================================================
