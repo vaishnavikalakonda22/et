@@ -49,7 +49,7 @@ We built a custom `"Slate Ocean"` theme taking inspiration from modern fintech h
 
 Developed as part of the **ET Gen AI Hackathon**
 
-* Pranavi Graidepally
+* Pranavi Garidepally
 * Vaishnavi Kalakonda
 * Hansini Immaneni 
 
