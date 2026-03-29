@@ -51,7 +51,7 @@ Developed as part of the **ET Gen AI Hackathon**
 
 * Pranavi Graidepally
 * Vaishnavi Kalakonda
-* Hansini Immaneni
+* Hansini Immaneni 
 
 ---
 
