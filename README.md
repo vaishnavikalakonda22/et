@@ -34,4 +34,32 @@ We built a custom `"Slate Ocean"` theme taking inspiration from modern fintech h
 - Surface Layers: Transparent slate with high-contrast borders
 - Accents: Voids of `sky-500` & `indigo-500`
 
+## 🔮 Future Scope
+
+* 📄 Real-time CAS PDF parsing using OCR/NLP for live portfolio analysis
+* 🤖 AI/ML-based personalized financial recommendations
+* 🔐 User authentication with cloud data storage
+* 📊 Advanced analytics with predictive insights
+* 📱 Mobile-responsive + app version deployment
+* 🌍 Integration with real financial APIs (banking, mutual funds, tax systems)
+
+---
+
+## 👩‍💻 Team
+
+Developed as part of the **ET Gen AI Hackathon**
+
+* Pranavi Graidepally
+* Vaishnavi Kalakonda
+* Hansini Immaneni
+
+---
+
+## 📎 Conclusion
+
+AI Money Mentor transforms complex financial decision-making into a simple, interactive, and intelligent experience.
+
+By combining structured financial logic with a user-friendly interface, the platform empowers users—especially students and beginners—to take control of their financial future with confidence.
+
+
 ---
